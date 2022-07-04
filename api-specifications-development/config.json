@@ -1,0 +1,6 @@
+{
+  "version": "1.0.10",
+  "swaggerCommand": "java -jar codegen/swagger-codegen-cli.jar",
+  "githubOrganization": "distinctai",
+  "packageName": "com.distinctai.services"
+}

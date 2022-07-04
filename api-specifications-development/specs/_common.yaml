@@ -1,0 +1,165 @@
+info:
+  description: Common models to API specs
+  version: "1.0"
+  title: Common Models
+
+securityDefinitions:
+  authToken:
+    type: apiKey
+    name: "x-auth-token"
+    in: header
+  appToken:
+    type: apiKey
+    name: "x-app-token"
+    in: header
+  basicAuth:
+    type: basic
+  apiKey:
+    type: apiKey
+    name: "x-api-key"
+    in: header
+
+definitions:
+  AccountTypes:
+    type: string
+    enum: [CANDIDATE, CLIENT]
+
+  StatusDto:
+    type: object
+    description: Status data, check additional message field
+    required:
+      - success
+    properties:
+      success:
+        type: boolean
+        example: true
+      message:
+        type: string
+        x-faker: lorem.sentence
+
+  ErrorMessageDto:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: string
+        description: Error code
+        example: "RESOURCE_NOT_FOUND"
+      message:
+        type: string
+        description: Descriptive error message
+        example: "Error message"
+        x-faker: lorem.sentence
+      data:
+        type: object
+        description: Some additional error data
+
+  PositiveInteger:
+    type: integer
+    format: int32
+    minimum: 0
+
+  Paging:
+    type: object
+    discriminator: name
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        description: Descriptive name for the list
+      size:
+        $ref: "#/definitions/PositiveInteger"
+        description: "Number of items returned"
+      totalItems:
+        $ref: "#/definitions/PositiveInteger"
+        description: "Total number of items available"
+      nextPage:
+        $ref: "#/definitions/PositiveInteger"
+        description: "Next page number"
+      previousPage:
+        $ref: "#/definitions/PositiveInteger"
+        description: "Previous page number"
+
+  ProviderNotificationStatus:
+    type: object
+    properties:
+      status:
+        type: boolean
+      message:
+        type: string
+      error:
+        type: string
+
+  Timestamp:
+    type: string
+    format: date-time
+    x-faker: date.recent
+
+  AmountFormat:
+    type: object
+    properties:
+      value:
+        type: number
+        x-faker: finance.amount
+      currency:
+        type: string
+        x-faker: finance.currencyCode
+
+parameters:
+  referenceId:
+    in: path
+    name: referenceId
+    description: Reference
+    required: true
+    type: string
+    format: uuid
+
+  appId:
+    in: path
+    name: appId
+    description: Application Identifier
+    required: true
+    type: string
+    format: uuid
+
+  fileId:
+    in: path
+    name: fileId
+    description: File Identifier
+    required: true
+    type: string
+    format: uuid
+
+  accountId:
+    in: path
+    name: accountId
+    description: Account Id
+    required: true
+    type: string
+    format: uuid
+
+  contactId:
+    in: path
+    name: contactId
+    description: Contact Identifier
+    required: true
+    type: string
+    format: uuid
+
+  userId:
+    in: path
+    name: userId
+    description: User Identifier
+    required: true
+    type: string
+    format: uuid
+
+  fileKey:
+    in: query
+    name: fileKey
+    description: File key
+    required: true
+    type: string

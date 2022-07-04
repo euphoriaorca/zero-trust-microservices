@@ -1,0 +1,169 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Distinct AI Lists
+  description: |
+    Handles Distinct public lists
+
+    **Errors**
+
+    Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred.
+
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+
+  license:
+    name: Distinct AI
+
+host: "###"
+basePath: /lists
+schemes:
+  - http
+  - https
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+tags:
+  - name: public
+    description: Publicly available endpoints
+
+parameters:
+  countryId:
+    in: path
+    name: countryId
+    description: Country Identifier
+    required: true
+    type: string
+    format: uuid
+  stateId:
+    in: path
+    name: stateId
+    description: State Id
+    required: true
+    type: string
+    format: uuid
+
+paths:
+  /location/countries:
+    get:
+      tags:
+        - public
+      summary: Get list of countries
+      operationId: getCountryList
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Op successful
+          schema:
+            $ref: "#/definitions/Countries"
+
+  /location/countries/{countryId}/states:
+    parameters:
+      - $ref: "#/parameters/countryId"
+
+    get:
+      tags:
+        - public
+      summary: Gets list of states
+      operationId: getStatesList
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Op successful
+          schema:
+            $ref: "#/definitions/States"
+
+  /location/states/{stateId}/cities:
+    parameters:
+      - $ref: "#/parameters/stateId"
+
+    get:
+      tags:
+        - public
+      summary: Gets list of cities
+      operationId: getCitiesList
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Op successful
+          schema:
+            $ref: "#/definitions/Cities"
+
+definitions:
+  Country:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 160
+        description: Country Id
+        x-faker: random.number
+      name:
+        type: string
+        example: Nigeria
+        description: Country name
+        x-faker: address.country
+      isoCode:
+        type: string
+        example: NG
+        x-faker: address.countryCode
+      phoneCode:
+        type: number
+        example: 234
+        x-faker: random.number
+      isSupported:
+        type: boolean
+        x-faker: random.boolean
+  Countries:
+    type: object
+    properties:
+      countries:
+        type: array
+        items:
+          $ref: "#/definitions/Country"
+
+  State:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 2671
+        x-faker: random.number
+      name:
+        type: string
+        example: Lagos
+        x-faker: address.state
+  States:
+    type: object
+    properties:
+      states:
+        type: array
+        items:
+          $ref: "#/definitions/State"
+
+  City:
+    type: object
+    properties:
+      id:
+        type: number
+        example: 30983
+        x-faker: random.number
+      name:
+        type: string
+        example: Ikeja
+        x-faker: address.city
+  Cities:
+    type: object
+    properties:
+      cities:
+        type: array
+        items:
+          $ref: "#/definitions/City"

@@ -1,0 +1,154 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Distinct AI Files
+  description: |
+    Handles Distinct client files
+
+    **Errors**
+
+    Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred.
+
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+
+  license:
+    name: Distinct AI
+
+host: "###"
+basePath: /files
+schemes:
+  - http
+  - https
+
+securityDefinitions:
+  authToken:
+    type: apiKey
+    name: x-auth-token
+    in: header
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+tags:
+  - name: user
+    description: User related endpoints
+  - name: service
+    description: Service related endpoints
+
+paths:
+  /me/upload/generate-presigned-url:
+    post:
+      tags:
+        - user
+      security:
+        - authToken: []
+      summary: Generate a file presigned url
+      description: |
+        Generate upload presigned url for file to be uploaded to amazon s3 bucket
+      operationId: getPhotoPresignedUrl
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: Presigned URL request body
+          schema:
+            $ref: "#/definitions/PresignedUrlDto"
+      responses:
+        201:
+          description: Operation successful
+          schema:
+            $ref: "#/definitions/PresignedUrlGeneratedDto"
+
+  /files:
+    get:
+      tags:
+        - service
+      security:
+        - authToken: []
+      summary: Check that a file exists
+      operationId: getFileFromUploads
+      parameters:
+        - $ref: "_common.yaml#/parameters/fileKey"
+      responses:
+        200:
+          description: Op successful
+          schema:
+            $ref: "#/definitions/FileExistsDto"
+
+    delete:
+      tags:
+        - service
+      security:
+        - authToken: []
+      summary: Delete a file from uploads
+      operationId: deleteFileFromUploads
+      parameters:
+        - $ref: "_common.yaml#/parameters/fileKey"
+      responses:
+        200:
+          description: Op successful
+          schema:
+            $ref: "_common.yaml#/definitions/StatusDto"
+
+definitions:
+  PresignedUrlDto:
+    type: object
+    required:
+      - contentType
+    properties:
+      contentType:
+        type: string
+        example: image/png
+      uploadType:
+        type: string
+        enum:
+          - USER_PHOTOS
+          - USER_VERIFICATIONS
+          - USER_TRANSACTIONS
+          - USER_DISPUTES
+
+  PresignedUrlGeneratedDto:
+    type: object
+    properties:
+      success:
+        type: boolean
+        example: true
+      message:
+        type: string
+        example: AWS SDK S3 Pre-signed urls generated successfully
+      signedUrl:
+        type: string
+      fileKey:
+        type: string
+      fileUrl:
+        type: string
+
+  FileExistsDto:
+    type: object
+    properties:
+      fileKey:
+        type: string
+        description: Uploaded file key
+        x-faker: system.filePath
+      fileSize:
+        type: string
+        description: File size
+        example: 500 KB
+      lastModified:
+        type: string
+        readOnly: true
+        format: date-time
+        x-faker: date.recent
+      contentType:
+        type: string
+        readOnly: true
+        x-faker: system.mimeType

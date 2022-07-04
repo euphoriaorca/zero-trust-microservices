@@ -1,0 +1,415 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Distinct AI Notifications
+  description: |
+    Handles sending email and/or push notifications to Distinct users
+
+    **Errors**
+
+    Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred.
+
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+
+  license:
+    name: Distinct AI
+
+host: "###"
+basePath: /notifications
+schemes:
+  - http
+  - https
+
+securityDefinitions:
+  authToken:
+    type: apiKey
+    name: x-auth-token
+    in: header
+
+security:
+  - authToken: []
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+tags:
+  - name: user
+    description: User management endpoints
+  - name: service
+    description: User service endpoints
+
+paths:
+  /me/push/messages:
+    get:
+      tags:
+        - user
+      summary: Get all user messages for a user (paginated)
+      operationId: getUserMessages
+      produces:
+        - application/json
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          format: int64
+          required: false
+          description: page starts from 0, default is 0 if not specified
+        - name: size
+          in: query
+          type: integer
+          format: int64
+          required: false
+          description: number of records per page, maximum is 500, default is 50 if not specified
+      responses:
+        200:
+          description: successful operation
+          schema:
+            $ref: "#/definitions/PushMessagesDto"
+
+  /me/push/subscriptions:
+    post:
+      tags:
+        - user
+      summary: Subscribes to web push messages
+      operationId: subscribeWebPushMessages
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/SubscribePushMessageDto"
+      responses:
+        200:
+          description: Op Successful
+          schema:
+            $ref: "#/definitions/SubscriptionDto"
+
+  /emails/send:
+    post:
+      tags:
+        - service
+      summary: Send email
+      operationId: sendEmail
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Request body
+          required: true
+          schema:
+            $ref: "#/definitions/SendMailDto"
+      responses:
+        200:
+          description: successful operation
+          schema:
+            $ref: "_common.yaml#/definitions/StatusDto"
+
+  /emails/mailing-lists/add-user:
+    post:
+      tags:
+        - service
+      summary: Add User to mailing list
+      operationId: addUserToMailingList
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: request
+          description: Request Body
+          required: true
+          schema:
+            $ref: "#/definitions/AddMailingListContactDto"
+      responses:
+        200:
+          description: successful operation
+          schema:
+            $ref: "_common.yaml#/definitions/StatusDto"
+
+  /push/messages:
+    post:
+      tags:
+        - service
+      summary: Send message to subscribers
+      operationId: sendMessage
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/PushMessageRequestDto"
+      responses:
+        200:
+          description: successful operation
+          schema:
+            $ref: "#/definitions/SendPushMessageSuccessDto"
+
+  /receive-event:
+    post:
+      tags:
+        - service
+      summary: Receives notification events and sends appropriate notification
+      operationId: receiveNotificationEvent
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Notifcation event body
+          required: true
+          schema:
+            $ref: "#/definitions/NotificationEventDto"
+      responses:
+        200:
+          description: successful operation
+          schema:
+            $ref: "_common.yaml#/definitions/StatusDto"
+
+definitions:
+  AddressDto:
+    type: object
+    required:
+      - email
+    properties:
+      name:
+        type: string
+      email:
+        type: string
+        format: email
+
+  SendMailDto:
+    type: object
+    required:
+      - sender
+      - receivers
+    properties:
+      subject:
+        type: string
+      content:
+        type: string
+        description: Content of email, will be ignored if template is in used.
+      template:
+        type: object
+        properties:
+          id:
+            type: string
+          params:
+            type: object
+            description: Should contain keys and values for template params
+      sender:
+        $ref: "#/definitions/AddressDto"
+      receivers:
+        type: array
+        items:
+          $ref: "#/definitions/AddressDto"
+      cc:
+        type: array
+        items:
+          $ref: "#/definitions/AddressDto"
+      bcc:
+        type: array
+        items:
+          $ref: "#/definitions/AddressDto"
+
+  AddMailingListContactDto:
+    type: object
+    required:
+      - listId
+      - contact
+    properties:
+      listId:
+        type: string
+        description: "ID of list to add email to"
+      contact:
+        $ref: "#/definitions/ContactDto"
+
+  ContactDto:
+    type: object
+    required:
+      - email
+    properties:
+      email:
+        type: string
+        maxLength: 254
+        description: "The email to add to the mailing list"
+      firstName:
+        type: string
+        maxLength: 50
+      lastName:
+        type: string
+        maxLength: 50
+      country:
+        type: string
+        maxLength: 50
+      phoneNumber:
+        type: string
+        format: phone
+        pattern: \\+[1-9][0-9]{0,3}[0-9]{7,9}
+
+  SubscriptionDto:
+    type: object
+    required:
+      - platform
+      - userId
+      - subscriptionId
+    properties:
+      platform:
+        type: string
+        enum:
+          - GCM_WEB
+      userId:
+        type: string
+      subscriptionId:
+        type: string
+      lastUsedAt:
+        type: string
+        format: date-time
+        readOnly: true
+        x-faker: date.recent
+      createdAt:
+        $ref: "_common.yaml#/definitions/Timestamp"
+      updatedAt:
+        $ref: "_common.yaml#/definitions/Timestamp"
+
+  SubscribePushMessageDto:
+    type: object
+    required:
+      - platform
+      - subscriptionId
+    properties:
+      platform:
+        type: string
+        enum:
+          - GCM_WEB
+      subscriptionId:
+        type: string
+
+  PushMessageRequestDto:
+    type: object
+    required:
+      - recipient
+      - message
+    properties:
+      recipient:
+        type: object
+        properties:
+          userId:
+            type: string
+            format: uuid
+          subscriptionId:
+            type: string
+            format: uuid
+      message:
+        type: object
+        required:
+          - body
+        properties:
+          title:
+            type: string
+          body:
+            type: string
+          data:
+            type: object
+
+  PushMessageDto:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+      type:
+        type: string
+      title:
+        type: string
+      body:
+        type: string
+      transactionInfo:
+        type: object
+      payload:
+        type: object
+      createdAt:
+        $ref: "_common.yaml#/definitions/Timestamp"
+      updatedAt:
+        $ref: "_common.yaml#/definitions/Timestamp"
+
+  PushMessagesDto:
+    allOf:
+      - $ref: "_common.yaml#/definitions/Paging"
+      - properties:
+          records:
+            type: array
+            items:
+              $ref: "#/definitions/PushMessageDto"
+
+  SendPushMessageSuccessDto:
+    type: object
+    properties:
+      success:
+        type: integer
+        format: int64
+      blocked:
+        type: integer
+        format: int64
+      failure:
+        type: integer
+        format: int64
+
+  NotificationEventDto:
+    type: object
+    required:
+      - type
+      - recipient
+    properties:
+      type:
+        type: string
+        enum:
+          - USER_WELCOME
+          - PASSWORD_RESET
+          - CONFIRM_ACCOUNT
+          - TRANSACTION_ACCEPTED
+          - TRANSACTION_DECLINED
+          - TRANSACTION_REQUEST
+          - VERIFICATION_REQUEST
+          - TRANSACTION_COMPLETE
+          - TRANSACTION_INVITE
+          - TRANSACTION_MILESTONE_RECEIPT_BUYER
+          - TRANSACTION_MILESTONE_RECEIPT_SELLER
+          - TRANSACTION_RECEIPT_BUYER
+          - TRANSACTION_RECEIPT_SELLER
+          - PAYMENT_ACTION_CODE
+          - PAYMENT_DISPUTE
+          - PAYMENT_CONFIRM_SELLER
+          - PAYMENT_CONFIRM_BUYER
+      userType:
+        type: string
+        enum:
+          - CANDIDATE
+          - CLIENT_USER
+      recipient:
+        type: object
+        properties:
+          userId:
+            type: string
+            format: uuid
+      parameters:
+        description: Parameters to be parsed
+        type: object
