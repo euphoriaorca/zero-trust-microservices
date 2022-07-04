@@ -1,0 +1,33 @@
+{
+  "name": "@distinctai/node-error-reporting",
+  "version": "1.0.3",
+  "description": "Handles error reporting in Nodejs applications",
+  "main": "./src/index.js",
+  "files": [
+    "src",
+    "!*.spec.ts",
+    "!*.ts",
+    "*.d.ts"
+  ],
+  "engines": {
+    "node": ">=12.10.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "git clean -Xf ./src/*",
+    "test": "echo \"Error: no test specified\""
+  },
+  "keywords": [
+    "Authenticator"
+  ],
+  "repository": "git+ssh://github.com/distinctai/api-specifications.git",
+  "author": {
+    "name": "Distinct Developers",
+    "email": "developers@distinct.ai"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@sentry/node": "5.13.1",
+    "@types/node": "13.7.0"
+  }
+}

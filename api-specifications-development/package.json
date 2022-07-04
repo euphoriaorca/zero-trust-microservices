@@ -1,0 +1,48 @@
+{
+		"name": "api-specifications",
+		"version": "1.0.0",
+		"description": "Distinct API Specifications",
+		"scripts": {
+				"test": "wsrun --exclude-missing --stages --fast-exit test $PKG",
+				"build": "node merger.js",
+				"validate": "for filename in ./specs/*; do [ $filename != ./specs/_* ] && echo \"Validating file ($filename)\" && node_modules/.bin/lint-openapi $filename; done",
+				"validate-resolved": "lint-openapi -e ./resolved/*.yaml",
+				"clean": "rm -rf resolved"
+		},
+		"repository": {
+				"type": "git",
+				"url": "git+https://github.com/distinctai/api-specifications.git"
+		},
+		"keywords": [
+				"api",
+				"specifications",
+				"packages"
+		],
+		"author": "Scodexx <matthesoneng@gmail.com> (https://sheyi.me/)",
+		"license": "MIT",
+		"bugs": {
+				"url": "https://github.com/distinctai/api-specifications/issues"
+		},
+		"homepage": "https://github.com/distinctai/api-specifications#readme",
+		"dependencies": {
+				"command-line-args": "5.1.1",
+				"fs": "0.0.1-security",
+				"husky": "4.2.3",
+				"ibm-openapi-validator": "0.16.2",
+				"js-yaml": "3.13.1",
+				"lodash": "4.17.21",
+				"swagger-client": "3.13.2",
+				"uuid": "3.4.0"
+		},
+		"devDependencies": {
+				"@types/jest": "25.1.2",
+				"jest": "25.1.0",
+				"lerna": "3.20.2",
+				"ts-jest": "26.1.0",
+				"typescript": "3.7.5",
+				"wsrun": "5.2.4"
+		},
+		"workspaces": [
+				"packages/nodejs/*"
+		]
+}

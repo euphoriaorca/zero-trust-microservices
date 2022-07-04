@@ -1,0 +1,545 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Distinct AI Authentication
+  description: |
+    Handles distinct user -> service and service -> service authentications
+
+    **Errors**
+
+    Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred.
+
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+
+  license:
+    name: Distinct AI
+
+host: "###"
+basePath: /authentication
+schemes:
+  - http
+  - https
+
+securityDefinitions:
+  authToken:
+    type: apiKey
+    name: x-auth-token
+    in: header
+
+  basicAuth:
+    type: basic
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+tags:
+  - name: user
+    description: User related endpoints
+  - name: service
+    description: Service related endpoints
+  - name: app
+    description: Application related endpoints
+
+paths:
+  /user/htoken:
+    post:
+      security:
+        - authToken: []
+      tags:
+        - user
+      summary: Generate a handshake token
+      description: |
+        Generates a client handshake token
+        Handsake tokens are used to transfer authentication data between one frontend application to another
+      operationId: createUserHandshakeToken
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: Handshake token request body
+          schema:
+            $ref: "#/definitions/UserHtokenRequest"
+      responses:
+        201:
+          description: Operation successful
+          schema:
+            $ref: "#/definitions/UserHTokenDto"
+
+  /user/token:
+    post:
+      security:
+        - authToken: []
+      tags:
+        - user
+      summary: Generates a user token
+      description: |
+        Generates a user token, doesn't necessarily have to be after a handshake token is generated
+      operationId: createUserAuthToken
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: User token request body
+          schema:
+            $ref: "#/definitions/UserTokenRequest"
+      responses:
+        201:
+          description: |
+            Returns the generated token
+            - **token** The user token
+            - **expiresAt** Token's expiry date
+            - **permissions** Array of available permissions per this token
+          schema:
+            $ref: "#/definitions/UserTokenDto"
+
+  /services:
+    post:
+      security:
+        - basicAuth: []
+      summary: Creates a service
+      tags:
+        - service
+      operationId: createServiceCredentials
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: |
+            Details of service to be created
+            - **description** `REQUIRED` Service description
+            - **permissions** Default permissons for this service
+          schema:
+            $ref: "#/definitions/ServiceDto"
+      responses:
+        201:
+          description: Service created successfully
+          schema:
+            $ref: "#/definitions/ServiceDto"
+
+  /services/permissions:
+    post:
+      security:
+        - basicAuth: []
+      summary: Updates service permissions
+      operationId: addServicePermissions
+      tags:
+        - service
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: |
+            Updates a service's default permissions. To do this, service must've first been created and activated.
+            - **serviceId** `REQUIRED` Service ID
+            - **permissions** `REQUIRED` Permissions to be added. Existing permissions will be ignored.
+          schema:
+            $ref: "#/definitions/ServicePermsRequest"
+      responses:
+        200:
+          description: Request successful
+          schema:
+            $ref: "#/definitions/PermissionsUpdated"
+
+  /services/token:
+    post:
+      security:
+        - basicAuth: []
+      operationId: createServiceAuthToken
+      tags:
+        - service
+      summary: Generates a service token
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: |
+            Details needed to generate a service token
+            - **payload** (Optional) Addtional data to be encoded with token
+          schema:
+            $ref: "#/definitions/TokenRequest"
+      responses:
+        200:
+          description: Returns service token
+          schema:
+            $ref: "#/definitions/ServiceToken"
+
+  /apps:
+    post:
+      security:
+        - basicAuth: []
+      summary: Creates an application
+      tags:
+        - app
+      operationId: createApplication
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: Request for a new app to be created
+          schema:
+            $ref: "#/definitions/AppDto"
+      responses:
+        201:
+          description: Op successful
+          schema:
+            $ref: "#/definitions/AppDto"
+
+  /apps/permissions:
+    post:
+      security:
+        - basicAuth: []
+      summary: Updates application permissions
+      operationId: addApplicationPermissions
+      tags:
+        - app
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: |
+            Updates an application's default permissions. To do this, application must've first been created and activated.
+            - **appId** `REQUIRED` Service ID
+            - **permissions** `REQUIRED` Permissions to be added. Existing permissions will be ignored.
+          schema:
+            $ref: "#/definitions/AppPermsRequest"
+      responses:
+        200:
+          description: Request successful
+          schema:
+            $ref: "#/definitions/AppDto"
+
+  /apps/token:
+    post:
+      security:
+        - basicAuth: []
+      operationId: createApplicationToken
+      tags:
+        - app
+      summary: Generates a application token
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: |
+            Details needed to generate an application token
+            - **payload** (Optional) Addtional data to be encoded with token
+          schema:
+            $ref: "#/definitions/TokenRequest"
+      responses:
+        201:
+          description: Returns application token
+          schema:
+            $ref: "#/definitions/AppTokenDto"
+
+definitions:
+  UserHtokenRequest:
+    type: object
+    properties:
+      userId:
+        type: string
+        description: User identifier (uuid)
+        format: uuid
+      payload:
+        type: object
+        description: |
+          Additional token payload
+          Will be encoded with token and availabled on decode
+        example:
+          some_property: value
+          another_property: 0
+
+  UserTokenRequest:
+    type: object
+    properties:
+      htoken:
+        type: string
+        description: Handshake token
+      permissions:
+        type: array
+        description: Allowed permissions
+        items:
+          type: string
+          example: auth.*
+      ttl:
+        type: integer
+        description: Time to token expiry
+        format: int64
+        example: 3600
+      payload:
+        type: object
+        description: |
+          Additional token payload
+          Will be encoded with token and availabled on decode
+        example:
+          some_property: value
+          another_property: 0
+
+  TokenRequest:
+    type: object
+    properties:
+      payload:
+        type: object
+        description: Addtional information
+        example:
+          some_property: value
+          another_property: 0
+
+  ServicePermsRequest:
+    type: object
+    properties:
+      serviceId:
+        type: string
+        description: Service identifier
+        format: uuid
+      permissions:
+        type: array
+        description: Available service permissions
+        items:
+          type: string
+          example: svcs.*
+
+  UserHTokenDto:
+    type: object
+    required:
+      - userId
+      - token
+    properties:
+      userId:
+        type: string
+        description: User ID
+        format: uuid
+      token:
+        type: string
+        description: User token
+      createdAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+      expiresAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+
+  UserTokenDto:
+    type: object
+    required:
+      - userId
+      - token
+    properties:
+      userId:
+        type: string
+        description: User ID
+        format: uuid
+      token:
+        type: string
+        description: User token
+      permissions:
+        type: array
+        description: Available token permissions
+        items:
+          type: string
+          example: auth.*
+      createdAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+      expiresAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+
+  ServiceToken:
+    type: object
+    required:
+      - serviceId
+      - token
+    properties:
+      serviceId:
+        type: string
+        format: uuid
+        description: Service Identifier
+      token:
+        type: string
+        description: Service token
+      permissions:
+        type: array
+        description: Available permissions
+        items:
+          type: string
+      createdAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+      expiresAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+
+  ServiceDto:
+    type: object
+    properties:
+      serviceId:
+        type: string
+        format: uuid
+        readOnly: true
+        x-faker: random.uuid
+      description:
+        type: string
+        description: Service description
+        example: Handles all user related operations
+        x-faker: lorem.words
+      permissions:
+        type: array
+        description: Default service permissions
+        items:
+          type: string
+          example: svcs.*
+      token:
+        type: string
+        description: |
+          Password token. This token can only be used along with your serviceId to generate a service token.
+        example: SERVICE_PASSWORD
+        readOnly: true
+      createdAt:
+        type: string
+        readOnly: true
+        format: date-time
+        x-faker: date.recent
+      updatedAt:
+        type: string
+        readOnly: true
+        format: date-time
+        x-faker: date.recent
+
+  PermissionsUpdated:
+    type: object
+    properties:
+      serviceId:
+        type: string
+        format: uuid
+      permissions:
+        type: array
+        items:
+          type: string
+      updatedAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+
+  AppDto:
+    type: object
+    properties:
+      appId:
+        type: string
+        format: uuid
+        description: Application Identifier
+        readOnly: true
+      appType:
+        type: string
+        enum:
+          - BROWSER
+      description:
+        type: string
+        x-faker: lorem.words
+      permissions:
+        type: array
+        description: Default application permissions
+        items:
+          type: string
+          example: app.*
+      token:
+        type: string
+        description: |
+          Password token. This token can only be used along with your appId to generate a application token.
+        example: APP_PASSWORD
+        readOnly: true
+      domain:
+        type: string
+      ip:
+        type: string
+        readOnly: true
+        x-faker: internet.ip
+      createdAt:
+        type: string
+        readOnly: true
+        format: date-time
+        x-faker: date.recent
+      updatedAt:
+        type: string
+        readOnly: true
+        format: date-time
+        x-faker: date.recent
+
+  AppTokenDto:
+    type: object
+    properties:
+      appId:
+        type: string
+        format: uuid
+        x-faker: random.uuid
+      token:
+        type: string
+        description: Application token
+      permissions:
+        type: array
+        description: Available token permissions
+        items:
+          type: string
+          example: auth.*
+      createdAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+      expiresAt:
+        type: string
+        format: date-time
+        x-faker: date.recent
+
+  AppPermsRequest:
+    type: object
+    properties:
+      appId:
+        type: string
+        description: Application Id
+        format: uuid
+      permissions:
+        type: array
+        description: Available application permissions
+        items:
+          type: string
+          example: apps.*

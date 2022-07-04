@@ -1,0 +1,8 @@
+{
+  "packages": [
+    "packages/nodejs/*"
+  ],
+  "version": "0.1.30",
+  "npmClient": "npm",
+  "useWorkspaces": true
+}

@@ -1,0 +1,49 @@
+name: Build and Publish Node.js Libraries
+
+on:
+  push:
+    paths:
+      - 'packages/nodejs/**'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  buildAndPublish:
+    name: Build and Publish Node Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
+      - name: Set Registry Config
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> $HOME/.npmrc
+          npm config set @${GITHUB_OWNER}:registry https://npm.pkg.github.com/${GITHUB_OWNER}
+
+      - name: Install Yarn
+        run: npm install -g yarn@latest json@latest
+
+      - name: Update Version for Snapshot
+        if: github.ref == 'refs/heads/development' || endsWith(github.ref, '-build')
+        run: |
+          cd packages/nodejs
+          for lib_dir in `ls`; do\
+            cd $lib_dir && \
+            json -I -f package.json -e "this.version=this.version+\"-SNAPSHOT-\"+Math.round(Date.now()/1000)" && \
+            cd -; done
+
+      - name: Publish Packages
+        if: github.ref == 'refs/heads/development' || endsWith(github.ref, '-build')
+        run: |
+          cd packages/nodejs
+          for lib_dir in `ls`; do \
+            cd $lib_dir && \
+            npm install && \
+            yarn test && \
+            yarn build && \
+            npm publish && \
+            cd -; done

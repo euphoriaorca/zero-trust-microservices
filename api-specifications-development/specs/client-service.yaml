@@ -1,0 +1,726 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "Client Service"
+  description: "Handles clients and client users data management **Errors** Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred."
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+  license:
+    name: "Distinct AI"
+host: "###"
+basePath: "/v1"
+schemes:
+  - "http"
+securityDefinitions:
+  authToken:
+    type: "apiKey"
+    name: "x-auth-token"
+    in: "header"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+tags:
+  - name: "Authentication"
+    description: "Client user authentication management"
+  - name: "User"
+    description: "Everything about the client users"
+  - name: "Client"
+    description: "Everything about the clients"
+
+paths:
+  /register:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Register a new client"
+      description: "This registers a new user. This is used when user registers themselves."
+      operationId: "registerUser"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "Registered user object"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              user:
+                $ref: "#/definitions/UserDTO"
+              client:
+                $ref: "#/definitions/ClientDTO"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /login:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Logs user into the system"
+      operationId: "loginUser"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "The login data for user"
+          required: true
+          schema:
+            $ref: "#/definitions/UserLogin"
+      responses:
+        "200":
+          description: "If user has multiple clients, only the 'clients' parameter is returned and if user has only one client, the 'handshakeToken', 'redirect' and 'expiresIn' parameters only are returned."
+          schema:
+            $ref: "#/definitions/LoginResponse"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /logout:
+    get:
+      tags:
+        - "Authentication"
+      summary: "Logs out current logged in user session"
+      operationId: "logoutUser"
+      parameters: []
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /password/reset:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Initiates password recovery by email"
+      operationId: "resetPassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "user email"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              email:
+                type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /password/change:
+    post:
+      tags:
+        - "Authentication"
+      summary: "Changes user password after password recovery"
+      operationId: "changePassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: "body"
+          in: "body"
+          description: "password reset data"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              email:
+                type: "string"
+              recoveryToken:
+                type: "string"
+              password:
+                type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /me:
+    get:
+      tags:
+        - "User"
+      summary: "Fetch an authenticated user"
+      description: "This is used to get an authenticated user."
+      operationId: "getUser"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/User"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    patch:
+      tags:
+        - "User"
+      summary: "Update user profile"
+      description: "This can only be done by the logged in user."
+      operationId: "updateUser"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "updated user object"
+          required: true
+          schema:
+            $ref: "#/definitions/UserDTO"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    delete:
+      tags:
+        - "User"
+      summary: "Delete user account"
+      description: "This can only be done by the logged in user."
+      operationId: "deleteUser"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /me/clients:
+    get:
+      tags:
+        - "User"
+      summary: "Fetch a user's clients"
+      description: "This is used to get all clients to which a user has been added."
+      operationId: "getUserClients"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties:
+              clients:
+                type: "array"
+                items:
+                  $ref: "#/definitions/Client"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /me/clients/{clientId}:
+    delete:
+      tags:
+        - "User"
+      summary: "Remove user client"
+      description: "Removes a client from a user's list of clients. This can only be done by the logged in user."
+      operationId: "deleteUserClient"
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /me/password:
+    post:
+      tags:
+        - "User"
+      summary: "Change user password"
+      description: "This can only be done by the logged in user."
+      operationId: "changeUserPassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "password reset object"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              currentPassword:
+                type: "string"
+              newPassword:
+                type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /users/lookup:
+    get:
+      tags:
+        - "User"
+      summary: "[SERVICE] Fetch user information by query parameter"
+      description: "This is used by a service to lookup a user's information"
+      operationId: "serviceLookUpUserQuery"
+      parameters:
+        - in: "query"
+          name: "userId"
+          description: "User ID"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/User"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /users/{userId}/lookup:
+    get:
+      tags:
+        - "User"
+      summary: "[SERVICE] Fetch user information by path parameter"
+      description: "This is used by a service to lookup a user's information"
+      operationId: "serviceLookUpUserPath"
+      parameters:
+        - in: "path"
+          name: "userId"
+          description: "User ID"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/User"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /clients/{clientId}:
+    get:
+      tags:
+        - "Client"
+      summary: "Fetch an existing client by ID"
+      operationId: "getClient"
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Client"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    patch:
+      tags:
+        - "Client"
+      summary: "Update an existing client"
+      description: "This is used to update an existing client data."
+      operationId: "updateClient"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+        - in: "body"
+          name: "body"
+          description: "updated user object"
+          required: true
+          schema:
+            $ref: "#/definitions/ClientDTO"
+      responses:
+        "201":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Client"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /clients/{clientId}/users:
+    post:
+      tags:
+        - "Client"
+      summary: "Add a new user to a client"
+      description: "This is used to add an unregistered user to a client. This can only be done by a logged in user."
+      operationId: "addClientUser"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+        - in: "body"
+          name: "body"
+          description: "Created user object"
+          required: true
+          schema:
+            $ref: "#/definitions/UserDTO"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /clients/{clientId}/users/{userId}:
+    patch:
+      tags:
+        - "Client"
+      summary: "Update user priviledges for a client account by ID"
+      description: "This is used to modify the permissions of a user to a client's account."
+      operationId: "updateUserPermissions"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+        - in: "path"
+          name: "userId"
+          description: "User ID"
+          required: true
+          type: "string"
+        - in: "body"
+          name: "permissions"
+          description: "updated user permissions"
+          required: true
+          schema:
+            type: "array"
+            items:
+              type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    delete:
+      tags:
+        - "Client"
+      summary: "Remove a user from a client's account by ID"
+      description: "This is used to revoke the access of a user to a client's account."
+      operationId: "removeClientUser"
+      parameters:
+        - in: "path"
+          name: "clientId"
+          description: "Client ID"
+          required: true
+          type: "string"
+        - in: "path"
+          name: "userId"
+          description: "User ID"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+
+definitions:
+  UserLogin:
+    type: "object"
+    required:
+      - "email"
+      - "password"
+    properties:
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      password:
+        type: "string"
+        x-faker: "random.word"
+  LoginResponse:
+    type: "object"
+    properties:
+      handshakeToken:
+        type: "string"
+        x-faker: "random.word"
+      redirect:
+        type: "string"
+        x-faker: "random.word"
+      expiresIn:
+        type: "number"
+        x-faker: "random.number"
+      clients:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            id:
+              type: "string"
+            name:
+              type: "string"
+            logo:
+              type: "string"
+            url:
+              type: "string"
+            status:
+              type: "string"
+              description: "Client Status"
+              enum:
+                - "ACTIVE"
+                - "PENDING"
+
+  Address:
+    type: "object"
+    required:
+      - "address"
+      - "city"
+      - "state"
+      - "country"
+    properties:
+      address:
+        type: "string"
+        x-faker: "address.streetAddress"
+      city:
+        type: "string"
+        x-faker: "address.city"
+      state:
+        type: "string"
+        x-faker: "address.state"
+      country:
+        type: "string"
+        x-faker: "address.country"
+      postCode:
+        type: "string"
+        x-faker: "address.zipCode"
+  ClientDTO:
+    type: "object"
+    required:
+      - "name"
+      - "description"
+      - "category"
+      - "industry"
+      - "address"
+    properties:
+      name:
+        type: "string"
+        x-faker: "company.companyName"
+      website:
+        type: "string"
+        x-faker: "internet.url"
+      description:
+        type: "string"
+        x-faker: "lorem.sentence"
+      category:
+        type: "string"
+        x-faker: "random.word"
+      industry:
+        type: "string"
+        x-faker: "random.word"
+      address:
+        $ref: "#/definitions/Address"
+  Client:
+    type: "object"
+    properties:
+      clientId:
+        type: "integer"
+        format: "uuid"
+        x-faker: "random.uuid"
+      name:
+        type: "string"
+        x-faker: "company.companyName"
+      website:
+        type: "string"
+        x-faker: "internet.url"
+      description:
+        type: "string"
+        x-faker: "lorem.sentence"
+      logo:
+        type: "string"
+        x-faker: "image.imageUrl"
+      category:
+        type: "string"
+        x-faker: "random.word"
+      industry:
+        type: "string"
+        x-faker: "random.word"
+      address:
+        $ref: "#/definitions/Address"
+      status:
+        type: "string"
+        description: "Client Status"
+        enum:
+          - "ACTIVE"
+          - "PENDING"
+  UserDTO:
+    type: "object"
+    required:
+      - "firstName"
+      - "lastName"
+      - "email"
+      - "phoneNumber"
+      - "password"
+    properties:
+      firstName:
+        type: "string"
+        x-faker: "name.firstName"
+      lastName:
+        type: "string"
+        x-faker: "name.lastName"
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      phoneNumber:
+        type: "string"
+        x-faker: "phone.phoneNumber"
+      password:
+        type: "string"
+        x-faker: "random.word"
+  User:
+    type: "object"
+    properties:
+      userId:
+        type: "integer"
+        format: "uuid"
+        x-faker: "random.uuid"
+      firstName:
+        type: "string"
+        x-faker: "name.firstName"
+      lastName:
+        type: "string"
+        x-faker: "name.lastName"
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      phone:
+        type: "string"
+        x-faker: "phone.phoneNumber"
+      status:
+        type: "string"
+        description: "User Status"
+        enum:
+          - "ACTIVE"
+          - "INACTIVE"
+          - "PENDING"
+      photo:
+        type: "string"
+        x-faker: "image.imageUrl"
+      verifiedEmail:
+        type: "boolean"
+      invitedBy:
+        type: "string"
+        x-faker: "name.firstName"
+  ApiResponse:
+    type: "object"
+    required:
+      - "code"
+      - "message"
+    properties:
+      code:
+        type: "string"
+      message:
+        type: "string"
+      data:
+        type: "string"
+  SuccessMessage:
+    type: "object"
+    properties:
+      success:
+        type: "boolean"
+      message:
+        type: "string"

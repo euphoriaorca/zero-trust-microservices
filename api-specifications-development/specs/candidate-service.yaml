@@ -1,0 +1,405 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "Candidate Service"
+  description: "Handles candidate data management 
+  
+  **Errors** Uses conventional HTTP response codes to indicate success or failure. In general, codes in the `2xx` range indicate success. Codes in the `4xx` range indicate an error (e.g. required parameters, failed request etc.). Codes int he `5xx` range indicate a server error occurred."
+  contact:
+    name: Distinct Developers
+    email: developers@distinct.ai
+  license:
+    name: "Distinct AI"
+host: "###"
+basePath: "/v1"
+schemes:
+- "http"
+securityDefinitions:
+  authToken:
+    type: "apiKey"
+    name: "x-auth-token"
+    in: "header"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+tags:
+- name: "Authentication"
+  description: "Candidate authentication management"
+- name: "User"
+  description: "Everything about the candidate profiles"
+    
+paths:
+  /register:
+    post:
+      tags:
+      - "Authentication"
+      summary: "Register a new candidate"
+      description: "This registers a new user."
+      operationId: "registerCandidate"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Registered candidate object"
+        required: true
+        schema:
+          $ref: "#/definitions/UserDTO"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /login:
+    post:
+      tags:
+      - "Authentication"
+      summary: "Logs candidate into the system"
+      operationId: "loginCandidate"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - name: "body"
+        in: "body"
+        description: "The login data for candidate"
+        required: true
+        schema:
+          $ref: "#/definitions/UserLogin"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+              type: "object"
+              properties:
+                handshakeToken:
+                  type: "string"
+                  x-faker: "random.word"
+                redirect:
+                  type: "string"
+                  description: "redirect URL"
+                expiresIn:
+                  type: "number"
+                  x-faker: "random.number"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /logout:
+    get:
+      tags:
+      - "Authentication"
+      summary: "Logs out current logged in user session"
+      operationId: "logoutCandidate"
+      parameters: []
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /password/reset:
+    post:
+      tags:
+      - "Authentication"
+      summary: "Initiates password recovery by email"
+      operationId: "resetCandidatePassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - name: "body"
+        in: "body"
+        description: "user email"
+        required: true
+        schema:
+            type: "object"
+            properties:
+              email:
+                type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /password/change:
+    post:
+      tags:
+      - "Authentication"
+      summary: "Changes user password after password recovery"
+      operationId: "changeCandidatePassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - name: "body"
+        in: "body"
+        description: "password reset data"
+        required: true
+        schema:
+            type: "object"
+            properties:
+              email:
+                type: "string"
+              recoveryToken:
+                type: "string"
+              password:
+                type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+  /me:
+    get:
+      tags:
+      - "User"
+      summary: "Fetch an authenticated user by ID"
+      operationId: "getCandidate"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/User"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    patch:
+      tags:
+      - "User"
+      summary: "Update user profile"
+      description: "This can only be done by the logged in user."
+      operationId: "updateCandidateProfile"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "updated user object"
+          required: true
+          schema:
+            $ref: "#/definitions/User"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+    delete:
+      tags:
+      - "User"
+      summary: "Delete user account"
+      description: "This can only be done by the logged in user."
+      operationId: "deleteCandidate"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+  /me/password:
+    post:
+      tags:
+      - "User"
+      summary: "Change user password"
+      description: "This can only be done by the logged in user."
+      operationId: "changeLoggedInCandidatePassword"
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "password reset object"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            currentPassword:
+              type: "string"
+            newPassword:
+              type: "string"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/SuccessMessage"
+        default:
+          description: "unsuccessful operation"
+          schema:
+            $ref: "#/definitions/ApiResponse"
+      security:
+        - authToken: []
+
+definitions:
+  UserLogin:
+    type: "object"
+    required:
+      - "email"
+      - "password"
+    properties:
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      password:
+        type: "string"
+        x-faker: "random.word"
+  UserDTO:
+    type: "object"
+    required:
+      - "firstName"
+      - "lastName"
+      - "email"
+      - "phoneNumber"
+      - "password"
+    properties:
+      firstName:
+        type: "string"
+        x-faker: "name.firstName"
+      lastName:
+        type: "string"
+        x-faker: "name.lastName"
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      phoneNumber:
+        type: "string"
+        x-faker: "phone.phoneNumber"
+      password:
+        type: "string"
+        x-faker: "random.word"
+      gender:
+        type: "string"
+        x-faker: "name.gender"
+      dateOfBirth:
+        type: "string"
+        x-faker: "date.past"
+      profilePhoto:
+        type: "string"
+        x-faker: "image.imageUrl"
+      preferredIndustry:
+        type: "string"
+        x-faker: "random.word"
+      address:
+        $ref: "#/definitions/Address"
+  User:
+    type: "object"
+    properties:
+      userId:
+        type: "integer"
+        format: "uuid"
+        x-faker: "random.uuid"
+      firstName:
+        type: "string"
+        x-faker: "name.firstName"
+      lastName:
+        type: "string"
+        x-faker: "name.lastName"
+      email:
+        type: "string"
+        x-faker: "internet.email"
+      phoneNumber:
+        type: "string"
+        x-faker: "phone.phoneNumber"
+      gender:
+        type: "string"
+        x-faker: "name.gender"
+      dateOfBirth:
+        type: "string"
+        x-faker: "date.past"
+      profilePhoto:
+        type: "string"
+        x-faker: "image.imageUrl"
+      preferredIndustry:
+        type: "string"
+        x-faker: "random.word"
+      status:
+        type: "string"
+        description: "User Status"
+        enum:
+        - "ACTIVE"
+        - "INACTIVE"
+        - "PENDING"
+      address:
+        $ref: "#/definitions/Address"
+  Address:
+    type: "object"
+    required:
+      - "address"
+      - "city"
+      - "state"
+      - "country"
+    properties:
+      address:
+        type: "string"
+        x-faker: "address.streetAddress"
+      city:
+        type: "string"
+        x-faker: "address.city"
+      state:
+        type: "string"
+        x-faker: "address.state"
+      country:
+        type: "string"
+        x-faker: "address.country"
+      postCode:
+        type: "string"
+        x-faker: "address.zipCode"
+  ApiResponse:
+    type: "object"
+    required:
+      - "code"
+      - "message"
+    properties:
+      code:
+        type: "string"
+      message:
+        type: "string"
+      data:
+        type: "string"
+  SuccessMessage:
+    type: "object"
+    properties:
+      success:
+        type: "boolean"
+      message:
+        type: "string"

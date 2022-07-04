@@ -1,0 +1,170 @@
+name: Verify and Generate
+
+on:
+  push:
+    paths:
+      - .github/**
+      - specs/**
+      - .validaterc
+      - lib/**
+      - 'generator.js'
+      - 'index.js'
+      - 'package.json'
+      - 'config.json'
+
+env:
+  SWAGGER_VERSION: 2.4.9
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  resolveSpecs:
+    name: Validate and Resolve API Specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+      - name: Install IBM Validator
+        run: npm install -g ibm-openapi-validator@0.18.x
+      - name: Run Validation
+        run: |
+          export FILES=''
+          for filename in specs/*; do [ $filename != specs/_* ] && FILES="$filename $FILES"; done
+          echo "Validating $FILES"
+          lint-openapi -e $FILES
+      - name: Cache node modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-npmcache-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-npmcache-
+      - name: NPM Install
+        run: npm install
+      - name: Run Merger
+        run: npm run-script build
+      - name: Validate Resolved Specs
+        run: lint-openapi -e resolved/*.yaml
+      - name: Upload Resolved Files
+        uses: actions/upload-artifact@v1
+        with:
+          name: resolved-specs
+          path: resolved
+
+  publishSpecsToReadme:
+    name: Publish To Readme.io
+    runs-on: ubuntu-latest
+    needs: resolveSpecs
+    if: github.ref == 'refs/heads/development'
+
+    steps:
+      - name: Print Ref
+        run: echo "Ref is ${{ github.ref }}"
+      - name: Download Resolved Files
+        uses: actions/download-artifact@v1
+        with:
+          name: resolved-specs
+      - name: Upload to Readme.io
+        run: |
+          curl --request PUT \
+          --url https://dash.readme.io/api/v1/api-specification/6076427c1378f4007fe5dced \
+          --header 'Accept: application/json' \
+          --user '${{ secrets.READMEIO_API_KEY }}' \
+          --header 'Content-Type: multipart/form-data' \
+          --form 'spec=@resolved-specs/api-gateway.yaml'
+
+  generatorScripts:
+    name: Generate Sources
+    runs-on: ubuntu-latest
+    needs: 
+      - resolveSpecs
+      - publishSpecsToReadme
+    env:
+      JAVA_OPTS: -Xms512m -Xmx4096m
+
+    if: github.ref == 'refs/heads/development'
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Cache node modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-npmcache-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-npmcache-
+      - name: NPM Install
+        run: npm install
+
+      - uses: actions/cache@v1
+        id: codegencache
+        with:
+          path: codegen
+          key: ${{ runner.os }}-swagger-codegen-cli-${{ env.SWAGGER_VERSION }}
+
+      - name: Download Swagger CLI
+        if: steps.codegencache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p codegen
+          wget https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/$SWAGGER_VERSION/swagger-codegen-cli-$SWAGGER_VERSION.jar -O codegen/swagger-codegen-cli.jar
+
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '8.x'
+          architecture: x64
+
+      - name: Download Resolved Files
+        uses: actions/download-artifact@v1
+        with:
+          name: resolved-specs
+
+      - name: Make Script
+        run: |
+          node generator.js --specs resolved-specs \
+          --script generate.sh \
+          --output generated-sources \
+          --lang typescript
+
+      - name: Run Make Script
+        run: sh generate.sh
+
+      - name: Zip Sources
+        run: zip -r generated-sources.zip generated-sources
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: generated-sources.zip
+          path: generated-sources.zip
+
+  buildAndPublishNodeLib:
+    name: Build and Publish Node Packages
+    runs-on: ubuntu-latest
+    needs: generatorScripts
+
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
+      - name: Set Registry Config
+        run: echo "//npm.pkg.github.com/:_authToken=$GITHUB_TOKEN" >> $HOME/.npmrc
+
+      - name: Download Generated Source
+        uses: actions/download-artifact@v1
+        with:
+          name: generated-sources.zip
+
+      - name: Unzip Sources
+        run: unzip generated-sources.zip/generated-sources.zip
+
+      - name: Install JSON Lib
+        run: npm install -g json
+
+      - name: Install JSON TypeScript
+        run: npm install -g typescript
+
+      - name: Loop and Publish TypeScript
+        run: for filename in generated-sources/typescript/*; do sh "$filename/publish.sh"; done

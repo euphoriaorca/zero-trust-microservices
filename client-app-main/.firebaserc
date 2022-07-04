@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "distinct-dev"
+  },
+  "targets": {
+    "distinct-dev": {
+      "hosting": {
+        "clients": [
+          "clients-distinct-dev"
+        ]
+      }
+    }
+  }
+}
